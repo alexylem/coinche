@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<title>Coinche</title>
+
+	<link rel="stylesheet" type="text/css" href="lib/CSS-Playing-Cards-master/cards.css" />
+	
+	<!-- Bootstrap -->
+	<link rel="stylesheet" href="lib/bootstrap-3.3.6-dist/css/bootstrap.min.css">
+
+	<link href='https://fonts.googleapis.com/css?family=Pacifico' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" type="text/css" href="css/my.css" />
+</head>
+<body>
+	<div id="container" class="container-fuild playingCards faceImages rotateHand">
+		<script id='template' type='text/ractive'>
+
+			<!-- SCORES -->
+			<div id="scores">
+				<table class="table table-condensed">
+					<thead>
+						<tr>
+							{{#each game.teams:t}}
+								<th>
+									{{#each players}}
+										{{#if team==t}}{{nickname}}<br />{{/if}}
+									{{/each}}
+								</th>
+							{{/each}}
+						</tr>
+					</thead>
+					<tbody>
+						{{#each game.scores}}
+							<tr>
+								<td>{{#0}}<span class="annonce {{getSuitClass(couleur)}}">{{montant}}</span>{{/}}</td>
+								<td>{{#1}}<span class="annonce {{getSuitClass(couleur)}}">{{montant}}</span>{{/}}</td>
+							</tr>
+						{{/each}}
+					</tbody>
+				</table>
+			</div>
+
+			<!-- PLI -->
+			{{#game.pli.cards:location}}
+				<div id="{{location}}" class="pli">
+					<div class="card rank-{{rank.toLowerCase()}} {{getSuitClass(this.suit)}}">
+					    <span class="rank">{{rank}}</span>
+						<span class="suit">{{suit}}</span>
+					</div>
+				</div>
+			{{/}}
+
+			<!-- HANDS -->
+			{{#each players:i}}
+				<div id="{{location}}-bubble" class="avatar {{location}} bubble" href="#" data-placement="{{popover}}">
+					<div class="picture">
+						<img src="{{avatar}}" />
+					</div>
+					<span class="nickname">
+						{{nickname}}
+					</span>
+				</div>
+				<div id="est-container" class="outerhand {{location}} hidden-xs">
+					<ul id="{{location}}-controls" class="hand {{location}}" style="width:{{3.7+hand.cards.length*2.1}}em" data-placement="{{popover}}">
+						{{#each hand.cards:c}}
+							<li style="transform: 
+								translate({{0.5*c+hand.cards.length*0.2}}em,
+										  {{Math.abs((c+1)-hand.cards.length/2)*0.5}}em)
+								rotate({{12*((hand.cards.length-1)/-2+c)}}deg);
+							">
+								{{#i && !cheatmode}}
+									<div class="card back"></div>
+								{{elseif youplay}}
+									<a on-click="put:{{i}},{{c}}" class="card rank-{{rank.toLowerCase()}} {{getSuitClass(this.suit)}}" href="#">
+									    <span class="rank">{{rank}}</span>
+									    <span class="suit">{{suit}}</span>
+									</a>
+								{{else}}
+									<div class="card rank-{{rank.toLowerCase()}} {{getSuitClass(this.suit)}}">
+									    <span class="rank">{{rank}}</span>
+									    <span class="suit">{{suit}}</span>
+									</div>
+								{{/}}
+							</li>
+						{{/each}}
+					</ul>
+				</div>
+			{{/each}}
+
+			<!-- DECK -->
+			<a id="deck" href="#" data-placement="left">
+				<ul class="deck">
+					{{#each deck.deck}}
+						<li><div class="card back"></div></li>
+					{{/each}}
+				</ul>
+			</a>
+
+			<!-- POPOVERS -->
+			<div id="controls" class="hide">
+				<div class="input-group form-group">
+			    	<span class="input-group-btn">
+			    		<button onclick="decrease()" class="btn btn-default" type="button">
+			    			<span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+			    		</button>
+			    	</span>
+			     	<input id="montant" type="text" class="form-control" value="80" readonly>
+			     	<span class="input-group-btn">
+			    		<button onclick="increase()" class="btn btn-default" type="button">
+			    			<span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+			    		</button>
+			    	</span>
+				</div>
+				<div class="btn-group btn-group-xs form-group btn-group-justified" role="group">
+					<a onclick="annoncer('&hearts')" class="btn btn-default" href="#" role="button">
+						<span class="rouge">&hearts;</span>
+					</a>
+					<a onclick="annoncer('&clubs')" class="btn btn-default" href="#" role="button">
+						<span class="noir">&clubs;</span>
+					</a>
+					<a onclick="annoncer('&diams')" class="btn btn-default" href="#" role="button">
+						<span class="rouge">&diams;</span>
+					</a>
+					<a onclick="annoncer('&spades')" class="btn btn-default" href="#" role="button">
+						<span class="noir">&spades;</span>
+					</a>
+				</div>
+				<div class="btn-group btn-group-justified" role="group">
+					<a class="btn btn-danger" href="#" role="button">
+						<span class="glyphicon glyphicon-thumbs-down" aria-hidden="true"></span>
+						Coincher
+					</a>
+					<a onclick="coinche.get('annoncer')(false)" class="btn btn-default" href="#" role="button">
+						<span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
+						Passer
+					</a>
+				</div>
+			</div>
+
+			<div id="deck-popover" class="hide">
+				<div class="btn-group" role="group">
+				  <button id="deal-btn" type="button" class="btn btn-default">Distribuer</button>
+				  <button type="button" class="btn btn-default">Couper</button>
+				  <button id="shuffle-btn"type="button" class="btn btn-default">Mélanger</button>
+				</div>
+			</div>
+		</script>
+	</div>	
+</div>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<!-- Ractive -->
+<script src='lib/ractive/ractive.min.js'></script>
+<!-- manage cache locally
+<script src='http://cdn.ractivejs.org/latest/ractive.min.js'></script>
+--> 
+
+<!-- Bootstrap -->
+<script src="lib/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
+<script src="lib/bootstrap-notify/bootstrap-notify.min.js"></script>
+
+<!-- App -->
+<script src="js/utils.js"></script>
+<script src="js/Class.js"></script>
+<script src="js/Game.js"></script>
+<script src="js/Coinche.js"></script>
+<script src="js/my.js"></script>
+
+</body>
+</html>
