@@ -6,30 +6,35 @@ var SuitLabels = {
 	'\u2660': { order: 3, label: 'spades' }
 };
 
-function Card (rank, suit) {
-	this.rank = rank;
-	this.suit = suit;
-
-	this.toString = function () {
+var Card = Class.extend ({
+	rank: null,
+	suit: null,
+	init: function (rank, suit) {
+		this.rank = rank;
+		this.suit= suit;
+	},
+	toString: function () {
 		return this.rank+this.suit;
-	};
-}
-
-function Deck (size) {
-	size = size || 52;
-	this.deck = [];
-
-	var ranks = 'A K Q J 10 9 8 7 6 5 4 3 2'.split(' ');
-
-	for (var i = 0; i<size; i++) {
-		this.deck.push (new Card(ranks[Math.floor(i/4)], Suits[i%4]));
+	},
+	beats: function (card, order) {
+		order = order || ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+		return order.indexOf (this.rank) > order.indexOf (card.rank);
 	}
+});
 
-	this.toString = function () {
+var Deck = Class.extend ({
+	deck: [],
+	init: function (size) {
+		size = size || 52;
+		var ranks = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
+		for (var i = 0; i<size; i++) {
+			this.deck.push (new Card(ranks[Math.floor(i/4)], Suits[i%4]));
+		}
+	},
+	toString: function () {
 		return this.deck.join (' ');
-	};
-
-	this.set = function (scards) {
+	},
+	set: function (scards) {
 		this.deck = [];
 		cards = scards.split (' ');
 		for (var i=0; i<cards.length; i++) {
@@ -38,26 +43,23 @@ function Deck (size) {
 				suit = card.slice(-1);
 			this.deck.push (new Card (rank, suit));
 		}
-	};
-
-	this.shuffle = function () {
+	},
+	shuffle: function () {
         console.log ('shuffling deck');
         for (var i = 0; i < this.deck.length; i++)
             this.deck[i] = this.deck.splice(
                 parseInt(this.deck.length * Math.random()), 1, this.deck[i])[0];
-    };
-
-	this.cut = function () {
+    },
+	cut: function () {
 		console.log ('cutting deck');
 		var at = Math.floor(Math.random() * this.deck.length-2) + 1,
 			half = this.deck.splice (0, at);
 		Array.prototype.push.apply(this.deck, half);
-	};
-
-	this.deal = function (nb) {
+	},
+	deal: function (nb) {
         return this.deck.splice(0, nb || 1);
-    };
-}
+    }
+});
 
 var Hand = Class.extend ({
 	init: function () {

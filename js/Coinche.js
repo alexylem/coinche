@@ -1,18 +1,42 @@
+var CoinchePoints = {
+	nonatout: { J: 2, Q:3, K:4, 10:10, A:11 },
+	atout:    {       Q:3, K:4, 10:10, A:11, 9:14, J:20 } 
+};
+
+var Card = Card.extend ({
+	beats: function (card, atout) {
+		if (this.suit == atout)
+			return (card.suit == atout) && this._super (card, ['7','8','Q','K','10','A','9','J']);
+		return (card.suit != atout) && (card.suit == this.suit) && this._super (card, ['7','8','9','J','Q','K','10','A']);
+	},
+	getPoints: function (atout) {
+		if (this.suit == atout)
+			return CoinchePoints.atout[this.rank] || 0;
+		return CoinchePoints.nonatout[this.rank] || 0;
+	}
+});
+
+var CoincheDeck = Deck.extend ({
+	init: function () {
+		this._super (32);
+	}
+});
+
 var CoincheHand = Hand.extend ({
 	order: function (atout) {
-		my.debug ('tri de la main à atout', atout);
+		//my.debug ('tri de la main à atout', atout);
 		order = '7 8 9 10 J Q K A'.split (' ');
 		order_atout = '7 8 10 Q K A 9 J'.split (' ');
 		this.cards.sort (function (a, b) {
 			if (a.suit != b.suit) {
-				my.debug (a+' et '+b+' ne sont dans la même couleur');
+				//my.debug (a+' et '+b+' ne sont dans la même couleur');
 				return SuitLabels[a.suit].order - SuitLabels[b.suit].order;
 			}
 			if (a.suit == atout) {
-				my.debug (a+' et '+b+' sont atouts');
+				//my.debug (a+' et '+b+' sont atouts');
 				return (order_atout.indexOf (a.rank) - order_atout.indexOf (b.rank));
 			}
-			my.debug (a+' et '+b+' ne sont pas atouts');
+			//my.debug (a+' et '+b+' ne sont pas atouts');
 			return (order.indexOf (a.rank) - order.indexOf (b.rank));
 		});
 	},

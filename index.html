@@ -33,8 +33,18 @@
 					<tbody>
 						{{#each game.scores}}
 							<tr>
-								<td>{{#0}}<span class="annonce {{getSuitClass(couleur)}}">{{montant}}</span>{{/}}</td>
-								<td>{{#1}}<span class="annonce {{getSuitClass(couleur)}}">{{montant}}</span>{{/}}</td>
+								<td>
+									{{#0}}
+									<span>{{points}} </span>
+									{{#contrat}} (<span class="annonce {{getSuitClass(couleur)}}">{{contrat}}</span>){{/}}
+									{{/}}
+								</td>
+								<td>
+									{{#1}}
+									<span>{{points}} </span>
+									{{#contrat}} (<span class="annonce {{getSuitClass(couleur)}}">{{contrat}}</span>){{/}}
+									{{/}}
+								</td>
 							</tr>
 						{{/each}}
 					</tbody>
@@ -42,9 +52,9 @@
 			</div>
 
 			<!-- PLI -->
-			{{#game.pli.cards:location}}
+			{{#game.pli.cards}}
 				<div id="{{location}}" class="pli">
-					<div class="card rank-{{rank.toLowerCase()}} {{getSuitClass(this.suit)}}">
+					<div class="card rank-{{rank.toLowerCase()}} {{getSuitClass(suit)}}">
 					    <span class="rank">{{rank}}</span>
 						<span class="suit">{{suit}}</span>
 					</div>

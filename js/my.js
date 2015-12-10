@@ -36,7 +36,7 @@ var coinche = new Ractive({
 	data: {
 		cheatmode: false,
 		players: players,
-		deck: new Deck (32),
+		deck: new CoincheDeck (),
 		game: {
 			teams: [{
 				points: 0,
@@ -45,7 +45,10 @@ var coinche = new Ractive({
 				points: 0,
 				annonce: false
 			}],
-			pli: {}, // cards on table
+			pli: {
+				couleur: false,
+				cards: []
+			}, // cards on table
 			nbpass: 0,
 			scores: []
 		},
@@ -73,8 +76,12 @@ var coinche = new Ractive({
 					if (coinche.get ('game.nbpass') == 3) {
 						var teneur = coinche.get ('game.teneur'),
 							contrat = coinche.get ('game.teams['+teneur+'].annonce'),
-							score = {};
-						score[teneur] = contrat;
+							score = {
+								0: {points: 0},
+								1: {points: 0},
+							};
+						score[teneur].contrat = contrat.montant;
+						score[teneur].couleur = contrat.couleur;
 						coinche.set ('game.contrat', contrat);
 						console.warn ('contrat établit à', contrat);
 						coinche.push ('game.scores', score);
@@ -95,7 +102,7 @@ var coinche = new Ractive({
 				}
 				else
 					$content.text ('Passe');
-				my.debug ('content', $content);
+				//my.debug ('content', $content);
 				$('#'+player.location+'-bubble').popover({
 					html: true,
 					content: $content
@@ -116,7 +123,7 @@ var coinche = new Ractive({
 			}, 1000);
 		},
 		jouer: function (card) {
-			my.debug ('playing card', card);
+			//my.debug ('playing card '+card);
 			var stop = false;
 			if (coinche.get ('turn') === 0)
 				coinche.set ('game.pli.couleur', card.suit);
@@ -127,7 +134,8 @@ var coinche = new Ractive({
 
 			setTimeout (function () {
 				if (stop) {
-					coinche.set ('game.pli.cards', {});
+					coinche.fire ('collect');
+					coinche.set ('game.pli.cards', []);
 					coinche.set ('turn', 0);
 					coinche.fire ('play');
 				} else
@@ -211,15 +219,41 @@ coinche.on ('play', function () {
 });
 
 coinche.on ('put', function (e, pid, cid) {
-	my.debug ('put invoked with pid', pid, 'cid', cid);
+	//my.debug ('put invoked with pid', pid, 'cid', cid);
 	coinche.set ('youplay', false);
 	var player = coinche.get ('players['+pid+']'),
 		card = player.hand.cards[cid];
 
 	my.debug (player.nickname, 'plays '+card);
 	coinche.splice ('players['+pid+'].hand.cards', cid, 1);
-	coinche.set ('game.pli.cards.'+player.location, card);
+	
+	card.location = player.location;
+	card.team = player.team;
+
+	coinche.push ('game.pli.cards', card); // add team for collect?
 	coinche.get('jouer')(card);
+});
+
+coinche.on ('collect', function () {
+	//my.debug ('checking who wins pli...');
+	var atout = coinche.get ('game.contrat.couleur'),
+		pli_cards = coinche.get ('game.pli.cards'),
+		turn = coinche.get ('game.turn'),
+		win_card = pli_cards.shift (),
+		points = win_card.getPoints (atout),
+		score = coinche.get ('game.scores[0]');
+	//my.debug ('win_card '+win_card);
+	$.each (pli_cards, function (seq, card) {
+		points += card.getPoints (atout);
+		if (card.beats (win_card, atout))
+			win_card = card;
+	});
+	my.debug ('pli remporte par', win_card.location, 'de equipe', win_card.team);
+	my.debug ('valeur', points, 'points');
+
+	score[win_card.team].points += points;
+	coinche.set('game.scores[0]', score);
+
 });
 
 $(document).on('click', '#deal-btn', function (event) { coinche.fire ('deal'); });

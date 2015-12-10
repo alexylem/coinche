@@ -84,6 +84,9 @@ rotate(e*((nb-1)/-2+i)deg);
 	transform: rotate(-5deg);
 	box-shadow: 0 0 5px rgba(0, 0, 0, 0.2), inset 0 0 50px rgba(0, 0, 0, 0.1), 1px 1px 1px 0px #343434;
 }
+#scores td {
+	font-size: large;
+}
 
 .outerhand { position: absolute !important; height: 8em; width: 20em;}
 .outerhand.south { bottom: 100px; left: 50%; transform: translateX(-50%);}
