@@ -16,6 +16,44 @@
 	<div id="container" class="container-fuild playingCards faceImages rotateHand">
 		<script id='template' type='text/ractive'>
 
+			<!-- BUTTONS -->
+			<button id="settings-btn" class="btn btn-default" data-toggle="modal" data-target="#settings-modal">
+				<span class="glyphicon glyphicon-cog"></span>
+			</button>
+			<div class="modal fade" id="settings-modal">
+			  <div class="modal-dialog modal-sm">
+			    <div class="modal-content">
+			      <div class="modal-header">
+			        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			        <h4 class="modal-title" id="myModalLabel">Préférences</h4>
+			      </div>
+			      <div class="modal-body">
+			      	<form class="form-horizontal">
+			      		<div class="form-group">
+						    <label for="game_speed" class="col-sm-6 control-label">Vitesse du jeu</label>
+						    <div class="col-sm-6">
+						      <select id="game_speed" value="{{settings.game_speed}}" class="form-control">
+						      	{{#each settings.game_speeds:speed}}
+								  <option value="{{speed}}">{{.}}</option>
+								{{/each}}
+								</select>
+						    </div>
+						  </div>
+						  <div class="form-group">
+						    <div class="col-sm-offset-6 col-sm-16">
+						    <div class="checkbox">
+							  <label>
+							    <input type="checkbox" checked="{{cheatmode}}">Mode triche
+							  </label>
+							</div>
+							</div>
+						  </div>
+			      	</form>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			
 			<!-- SCORES -->
 			<div id="scores">
 				<table class="table table-condensed">
@@ -53,7 +91,7 @@
 
 			<!-- PLI -->
 			{{#game.pli.cards}}
-				<div id="{{location}}" class="pli">
+				<div class="pli {{location}}">
 					<div class="card rank-{{rank.toLowerCase()}} {{getSuitClass(suit)}}">
 					    <span class="rank">{{rank}}</span>
 						<span class="suit">{{suit}}</span>
@@ -101,7 +139,7 @@
 			<!-- DECK -->
 			<a id="deck" href="#" data-placement="left">
 				<ul class="deck">
-					{{#each deck.deck}}
+					{{#each ~/deck.deck}}
 						<li><div class="card back"></div></li>
 					{{/each}}
 				</ul>

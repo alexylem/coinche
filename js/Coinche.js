@@ -6,7 +6,7 @@ var CoinchePoints = {
 var Card = Card.extend ({
 	beats: function (card, atout) {
 		if (this.suit == atout)
-			return (card.suit == atout) && this._super (card, ['7','8','Q','K','10','A','9','J']);
+			return (card.suit != atout) || this._super (card, ['7','8','Q','K','10','A','9','J']);
 		return (card.suit != atout) && (card.suit == this.suit) && this._super (card, ['7','8','9','J','Q','K','10','A']);
 	},
 	getPoints: function (atout) {
@@ -16,9 +16,50 @@ var Card = Card.extend ({
 	}
 });
 
+Array.prototype.best = function (atout) {
+	var best = false;
+	$.each (this, function (cid, card) {
+		if ((best === false) || card.beats (best, atout))
+			best = card;
+	});
+	return best;
+};
+
 var CoincheDeck = Deck.extend ({
 	init: function () {
 		this._super (32);
+	}
+});
+
+var PlayedCards = Class.extend ({
+	init: function (atout) {
+		this.atout = atout;
+		this.bysuit = {};
+		var cards = new CoincheDeck ();
+		for (var i=0; i<Suits.length; i++)
+			this.bysuit[Suits[i]] = [];		
+		for (i=0; i<cards.deck.length; i++)
+			this.bysuit[cards.deck[i].suit].push (cards.deck[i]);
+	},
+	add: function (card) {
+		my.debug ('	ajout de '+card+' aux cartes jouees');
+		var suitcards = this.bysuit[card.suit];
+		$.each (suitcards, function (i) {
+			if (card.rank == this.rank)
+				suitcards.splice (i, 1);
+		});
+	},
+	est_maitre: function (card) {
+		var atout = this.atout,
+			est_maitre = true;
+		$.each (this.bysuit[card.suit], function () {
+			if (this.beats (card, atout))
+				est_maitre = false;
+		});
+		return est_maitre;
+	},
+	atoutsRestants: function () {
+		return this.bysuit[this.atout].length;
 	}
 });
 
@@ -40,8 +81,8 @@ var CoincheHand = Hand.extend ({
 			return (order.indexOf (a.rank) - order.indexOf (b.rank));
 		});
 	},
-	minid: function (suit, isatout) {
-		return this._super (isatout?'7 8 Q K 10 A 9 J':'7 8 9 J Q K 10 A', suit);
+	minid: function (suit, isatout, fromorder) {
+		return this._super (isatout?'7 8 Q K 10 A 9 J':'7 8 9 J Q K 10 A', suit, fromorder);
 	}
 });
 
@@ -345,13 +386,89 @@ var CoincheRobot = Robot.extend ({
 	play: function (game) {
 		var couleur_atout = game.contrat.couleur,
 			couleur_demandee = game.pli.couleur,
-			par_couleur = {};
+			//atouts_restants_part = game.manche.atouts_restants[this.team],
+			//atouts_restants_adv  = game.manche.atouts_restants[(this.team+1)%2],
+			en_attaque = game.teneur == this.team,
+			atouts_restants = game.manche.cartes_jouees.atoutsRestants (),
+			par_couleur = {},
+			cartes_maitres = {};
+		$.each (Suits, function (i, suit) {
+			par_couleur[suit] = [];
+			cartes_maitres[suit] = false;
+		});
 		$.each (this.hand.cards, function (cid, card) {
 			card.id = cid;
-			par_couleur[card.suit] = card;
+			par_couleur[card.suit].push (card);
+			if (game.manche.cartes_jouees.est_maitre (card)) {
+				my.debug (card+' est maitre');
+				cartes_maitres[card.suit] = card;
+			}
 		});
+		atouts_restants -= par_couleur[couleur_atout].length;
+		
+		if (couleur_demandee === false) {
+			my.log ("je dois poser la première carte");
+			if (atouts_restants) {
+				my.log ("je dois faire tomber les atouts chez l'adversaire");
+				if (par_couleur[couleur_atout].length) {
+					if (cartes_maitres[couleur_atout]) {
+						my.log ("je pose un atout maitre");
+						return cartes_maitres[couleur_atout].id;
+					} /*else {
+						my.log ("je n'ai pas d'atout maitre");
+						if (meilleur atout < 10) {
+							my.log ("je pose un petit atout pour faire tomber les autres");
+						} else {
+							my.log ("je ne veux pas sacrifier mes atouts, j'essaye de faire couper");
+						}
+					}
+				else {
+					my.log ("je n'ai pas d'atout, j'essaye de faire couper l'adversaire");
+				*/
+				}
+				
+			}
+			else {
+				my.log ("je joues mes cartes maitres");
+				for (var suit in cartes_maitres)
+					if (cartes_maitres.hasOwnProperty (suit) && (suit != couleur_atout) && cartes_maitres[suit])
+						return cartes_maitres[suit].id;
+				my.log ("je n'ai pas de carte maitre");
+			} /*
+			else if (appel part) {
+				my.log ("je reponds a l'appel de mon part");
+			}
+			else if (coupe part) {
+				my.log ("j'essaye de faire couper mon part");
+			}
+			else
+				pisser carte adv pas maitre
+			return 0;
+			*/
+		}
 		
 		my.log ('je dois jouer du', couleur_demandee);
+		if (couleur_demandee == couleur_atout) {
+			var best = game.pli.cards.best (couleur_atout);
+			my.log ("c'est de l'atout je dois monter sur "+best);
+			if (en_attaque && cartes_maitres[couleur_atout]) {
+				my.log ("je pose un atout maitre");
+				return cartes_maitres[couleur_atout].id;
+			}
+			my.log ("je n'ai pas d'atout maitre, je mets le minimum");
+			if ((cid = this.hand.minid (couleur_demandee, true, best.rank)) !== false)
+				return cid;
+			my.log ("je ne peux pas monter");
+			if ((cid = this.hand.minid (couleur_demandee, true)) !== false)
+				return cid;
+			my.log ("je n'ai pas d'atout, je fais un appel?");
+			return this.hand.minid ();
+		}
+		if (cartes_maitres[couleur_demandee]) {
+			my.log ("je suis maitre à cette couleur");
+			return cartes_maitres[couleur_demandee].id;
+		}
+		my.log ('je joue léger à', couleur_demandee);
 		if ((cid = this.hand.minid (couleur_demandee)) !== false)
 			return cid;
 
@@ -359,11 +476,11 @@ var CoincheRobot = Robot.extend ({
 		if ((cid = this.hand.minid (couleur_atout)) !== false)
 			return cid;
 
-		my.log ("j'ai pas d'atout, je mets une carte au hasard");
-		return 0; // first card;s
-	},
+		my.log ("j'ai pas d'atout, je pisse");
+		return this.hand.minid ();
+	}
 });
-
+/*
 var CoincheGame = Game.extend({
 	init: function (players) {
 		var robotnicknames = 'South West North Est'.split(' ');
@@ -454,3 +571,4 @@ var CoincheGame = Game.extend({
 		return 'next to speak: '+this.players[this.dealer+this.turn].nickname;
 	}
 });
+*/

@@ -23,8 +23,8 @@ var Card = Class.extend ({
 });
 
 var Deck = Class.extend ({
-	deck: [],
 	init: function (size) {
+		this.deck = [];
 		size = size || 52;
 		var ranks = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
 		for (var i = 0; i<size; i++) {
@@ -84,16 +84,20 @@ var Hand = Class.extend ({
 	toString: function () {
 		return this.cards.join (' ');
 	},
-	minid: function (order, suit) {
+	minid: function (order, suit, fromorder) {
 		order = order || '2 3 4 5 6 7 8 9 10 J Q K A';
 		order = order.split (' ');
-		var mincid = false,
-			minorder = false;
+		fromorder = order.indexOf (fromorder) || -1;
+		minorder = order.length;
+		var mincid = false;
 		$.each (this.cards, function (cid, card) {
 			if (suit && card.suit != suit)
 				return;
-			if ((mincid === false) || (order.indexOf (card.rank) < minorder))
+			var cardorder = order.indexOf (card.rank);
+			if ((cardorder < minorder) && (cardorder > fromorder)){
 				mincid = cid;
+				minorder = cardorder;
+			}
 		});
 		return mincid;
 	}

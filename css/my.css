@@ -16,13 +16,13 @@ body { background-color: #196C45; }
     background-image: url(data:image/gif;base64,R0lGODlhJAAkAJEAAOjFsezdztOKbL5QKCH5BAAAAAAALAAAAAAkACQAAAL/HC4RAqm/mmLHyHmAbczB11Ea8ombJKSgKo6Z17pXFznmS1JptiX0z3vVhpEKDoUIkoa0olGIUeZUk1RI6Yn2mh/FDAt6frOrRRTqXPpsVLYugzxaVy+YcBdnoWPZOT0E4eckQtZFZBjWoHixQFWl6Nhol6R2p1Okt5TGaEWZA6fjiMdhZgPHeWrTWGVq+jTZg1HYyAEWKLYzmyiGKoUimilz+YYryyTlg5RcDJSAbNx0Q7lMcbIGEyzTK8zVdfVaImzs/QV+prYqWWW2ObkoOApM/Em/rUlIm7fijs8a2EEKEaZ3AsMUgneEU6RcpJbZ27aGHkAO2Ors8xQH1IR0Bn5YnOtVAAA7); /* image is "Pattern 069" from http://www.squidfingers.com/patterns/ */
 }
 .playingCards .card { box-sizing: initial; }
-/*
-.playingCards ul.hand { height: auto !important; }
-*/
 /* animations */
 ul.hand, ul.hand li {transition: all 500ms ease;}
 
-
+/* bootstrap fixes */
+.popover { /* popover below modal (1050) */
+	z-index: 1040;
+}
 /*
 TRANSLATION
 	HORIZONTAL
@@ -53,17 +53,32 @@ rotation = offset gauche + i * espacement = (nb-1)*e/-2+i*e = e*((nb-1)/-2+i)
 rotate(e*((nb-1)/-2+i)deg);
 */
 
+/* BUTTONS */
+#settings-btn {
+	position: absolute;
+	top: 15px;
+	right: 15px;
+}
+
 /* PLI */
 .pli {
 	position: absolute;
     top: 50%;
     left: 50%;
+    transition: all 500ms ease;
 }
-#west  { transform: translate(-100%,-50%) rotate(-30deg);}
-#north { transform: translate( -50%,-90%) rotate( 30deg);}
-#est   { transform: translate(   0%,-50%) rotate(-50deg);}
-#south { transform: translate( -60%,-20%) rotate(200deg);}
+.pli.west  { transform: translate(-100%,-50%) rotate(-30deg);}
+.pli.north { transform: translate( -50%,-90%) rotate( 30deg);}
+.pli.est   { transform: translate(   0%,-50%) rotate(-50deg);}
+.pli.south { transform: translate( -60%,-20%) rotate(200deg);}
 
+.pli.fly_west, .pli.fly_north, .pli.fly_est, .pli.fly_south { opacity: 0; }
+.pli.fly_west, .pli.fly_est   { transform: translateY(-50%) rotate(90deg) !important; }
+.pli.fly_north, .pli.fly_south { transform: translateX(-50%) !important; }
+.pli.fly_west  { left: 0%;   }
+.pli.fly_north { top:  0%;   }
+.pli.fly_est   { left: 100%; }
+.pli.fly_south { top: 100%;  }
 
 #deck {
 	display: block;

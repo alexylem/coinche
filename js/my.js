@@ -1,3 +1,7 @@
+// Settings
+var anim_speed = 500, //ms, to be aligned with css animation
+	default_game_speed = 500; //ms => Rapide
+
 // Log levels
 my.loglevel = 4;
 Ractive.DEBUG = (my.log_level >= 4);
@@ -37,6 +41,16 @@ var coinche = new Ractive({
 		cheatmode: false,
 		players: players,
 		deck: new CoincheDeck (),
+		
+		settings: {
+			game_speeds: {
+				500: 'Rapide',
+				1000: 'Normal',
+				2000: 'Lent'
+			},
+			game_speed: default_game_speed
+		},
+
 		game: {
 			teams: [{
 				points: 0,
@@ -49,6 +63,9 @@ var coinche = new Ractive({
 				couleur: false,
 				cards: []
 			}, // cards on table
+			manche: {
+				cartes_jouees: false,
+			},
 			nbpass: 0,
 			scores: []
 		},
@@ -85,6 +102,7 @@ var coinche = new Ractive({
 						coinche.set ('game.contrat', contrat);
 						console.warn ('contrat établit à', contrat);
 						coinche.push ('game.scores', score);
+						coinche.set ('game.manche.cartes_jouees', new PlayedCards(contrat.couleur));
 						coinche.set ('turn', 0);
 						stop = true;
 					}
@@ -120,28 +138,34 @@ var coinche = new Ractive({
 				} else
 					coinche.set ('turn', (coinche.get ('turn')+1) %4);
 				coinche.fire ('play');
-			}, 1000);
+			}, coinche.get ('settings.game_speed'));
 		},
 		jouer: function (card) {
 			//my.debug ('playing card '+card);
-			var stop = false;
-			if (coinche.get ('turn') === 0)
+			var stop = false,
+				nb_cards_pli = coinche.get ('game.pli.cards').length;
+			if (nb_cards_pli === 1) {
+				my.debug ('le pli est à', card.suit);
 				coinche.set ('game.pli.couleur', card.suit);
-			else if (coinche.get ('turn') === 3) {
+			}
+			else if (nb_cards_pli === 4) {
 				my.debug ('tout le monde a posé une carte');
 				stop = true;
 			}
-
-			setTimeout (function () {
-				if (stop) {
-					coinche.fire ('collect');
-					coinche.set ('game.pli.cards', []);
-					coinche.set ('turn', 0);
-					coinche.fire ('play');
-				} else
-					coinche.add ('turn');
+			
+			if (stop) {
+				setTimeout (function () {
+					coinche.fire ('collect'); // sets new turn
+					setTimeout (function () {
+						coinche.set ('game.pli.cards', []);
+						coinche.set ('game.pli.couleur', false);
+						coinche.fire ('play');
+					}, anim_speed);
+				}, coinche.get ('settings.game_speed'));
+			} else {
+				coinche.set ('turn', (coinche.get ('turn')+1) %4);
 				coinche.fire ('play');
-			}, 1000);
+			}
 		}
 	}
 });
@@ -165,7 +189,7 @@ coinche.on ('deal', function () {
 			}
 		});
 	});
-
+	
 	// order players hand
 	$.each (coinche.get('players'), function (i, player) {
 		my.debug ('tri de la main de', player.nickname);
@@ -193,7 +217,9 @@ coinche.on ('play', function () {
 		game = coinche.get ('game');
 	if (coinche.get ('game.contrat')) {
 		if (player.isia) {
-			coinche.fire ('put', false, pid, player.play (coinche.get ('game')));
+			setTimeout (function () {
+				coinche.fire ('put', false, pid, player.play (coinche.get ('game')));
+			}, coinche.get ('settings.game_speed'));
 		}
 		else {
 			coinche.set ('youplay', true);
@@ -225,12 +251,13 @@ coinche.on ('put', function (e, pid, cid) {
 		card = player.hand.cards[cid];
 
 	my.debug (player.nickname, 'plays '+card);
+	coinche.get ('game.manche.cartes_jouees').add (card); // for stats
 	coinche.splice ('players['+pid+'].hand.cards', cid, 1);
 	
 	card.location = player.location;
-	card.team = player.team;
+	card.pid = pid;
 
-	coinche.push ('game.pli.cards', card); // add team for collect?
+	coinche.push ('game.pli.cards', card);
 	coinche.get('jouer')(card);
 });
 
@@ -239,21 +266,26 @@ coinche.on ('collect', function () {
 	var atout = coinche.get ('game.contrat.couleur'),
 		pli_cards = coinche.get ('game.pli.cards'),
 		turn = coinche.get ('game.turn'),
-		win_card = pli_cards.shift (),
+		win_card = pli_cards[0],
 		points = win_card.getPoints (atout),
 		score = coinche.get ('game.scores[0]');
 	//my.debug ('win_card '+win_card);
-	$.each (pli_cards, function (seq, card) {
+	for (var i=1; i<4; i++) {
+		card = pli_cards[i];
 		points += card.getPoints (atout);
 		if (card.beats (win_card, atout))
 			win_card = card;
-	});
-	my.debug ('pli remporte par', win_card.location, 'de equipe', win_card.team);
+	}
+	var win_team = coinche.get('players['+win_card.pid+'].team');
+	my.debug ('pli remporte par', win_card.location, 'de equipe', win_team);
 	my.debug ('valeur', points, 'points');
 
-	score[win_card.team].points += points;
+	$('.pli').addClass('fly_'+win_card.location);
+
+	score[win_team].points += points;
 	coinche.set('game.scores[0]', score);
 
+	coinche.set('turn', win_card.pid);
 });
 
 $(document).on('click', '#deal-btn', function (event) { coinche.fire ('deal'); });
