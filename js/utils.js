@@ -208,12 +208,8 @@ $.getScripts = function (srcs) {
     return $.when.apply($, scripts);
 };
 */
-function getUrlVars(url) {
-    var vars = {};
-    var parts = url.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-        vars[key] = value;
-    });
-    return vars;
+function getURLParameter (name) {
+	return decodeURIComponent((RegExp(name + '=' + '(.+?)(&|$)').exec(location.search)||[,null])[1]);
 }
 
 Array.prototype.move = function (old_index, new_index) {

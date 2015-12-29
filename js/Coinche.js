@@ -42,7 +42,7 @@ var PlayedCards = Class.extend ({
 			this.bysuit[cards.deck[i].suit].push (cards.deck[i]);
 	},
 	add: function (card) {
-		my.debug ('	ajout de '+card+' aux cartes jouees');
+		//my.debug ('	ajout de '+card+' aux cartes jouees');
 		var suitcards = this.bysuit[card.suit];
 		$.each (suitcards, function (i) {
 			if (card.rank == this.rank)
@@ -60,14 +60,26 @@ var PlayedCards = Class.extend ({
 	},
 	atoutsRestants: function () {
 		return this.bysuit[this.atout].length;
+	},
+	couleurCoupe: function (atout) {
+		var coupe, min = 9;
+		$.each (this.bysuit, function (suit, cards) {
+			//my.debug ('suit', suit, 'nb', cards.length);
+			if ((suit != atout) && cards.length < min) {
+				coupe = suit;
+				min = cards.length;
+			}
+		});
+		//my.debug ('coupe', coupe);
+		return coupe;
 	}
 });
 
 var CoincheHand = Hand.extend ({
 	order: function (atout) {
 		//my.debug ('tri de la main à atout', atout);
-		order = '7 8 9 10 J Q K A'.split (' ');
-		order_atout = '7 8 10 Q K A 9 J'.split (' ');
+		order = '7 8 9 J Q K 10 A'.split (' ');
+		order_atout = '7 8 Q K 10 A 9 J'.split (' ');
 		this.cards.sort (function (a, b) {
 			if (a.suit != b.suit) {
 				//my.debug (a+' et '+b+' ne sont dans la même couleur');
@@ -81,8 +93,27 @@ var CoincheHand = Hand.extend ({
 			return (order.indexOf (a.rank) - order.indexOf (b.rank));
 		});
 	},
-	minid: function (suit, isatout, fromorder) {
-		return this._super (isatout?'7 8 Q K 10 A 9 J':'7 8 9 J Q K 10 A', suit, fromorder);
+	minid: function (params) {
+		params.order = params.order || (params.isatout?'7 8 Q K 10 A 9 J':'7 8 9 J Q K 10 A');
+		params.above = params.tryabove || params.above;
+
+		var min = this._super (params);
+		if ((min === false) && params.tryabove) {
+			params.above = false;
+			min = this._super (params);
+		}
+		return min;
+	},
+	maxid: function (params) {
+		params.order = params.isatout?'J 9 A 10 K Q 8 7':'A 10 K Q J 9 8 7';
+		params.above = params.trybelow || params.below;
+
+		var max = this.minid (params);
+		if ((max === false) && params.trybelow) {
+			params.above = false;
+			max = this.minid (params);
+		}
+		return max;
 	}
 });
 
@@ -254,10 +285,15 @@ var CoincheRobot = Robot.extend ({
 	init: function (agressivite) {
 		this._super ();
 		this.agressivite = agressivite || 0; // automatique
+		this.hand = new CoincheHand ();
+		this.reset ();
+	},
+	reset: function () {
+		this._super ();
+		my.debug ('resetting', this.nickname);
 		this.annonce = false;
 		this.pts = false;
 		this.accord_couleur = false;
-		this.hand = new CoincheHand ();
 	},
 	speak: function (game) {
 		console.log (this.hand.toString());
@@ -265,15 +301,19 @@ var CoincheRobot = Robot.extend ({
 		// Vérification annonces précédentes
 		var annonce_equipe = game.teams[this.team].annonce,
 			annonce_part,
-			atout_manquant = false;
-			annonce_adv = game.teams[(this.team+1)%2].annonce;
-		
-		if (annonce_equipe && ( !this.annonce || (annonce_equipe.montant > this.annonce.montant ))) {
+			atout_manquant = false,
+			annonce_adv = game.teams[(this.team+1)%2].annonce,
+			speech = "Rien à faire";
+
+		if (annonce_equipe && ( !this.annonce.montant || (annonce_equipe.montant > this.annonce.montant ))) {
 			annonce_part = annonce_equipe;
 		}
 
+		my.debug ('this.annonce', this.annonce);
+		my.debug ('this.pts', this.pts);
+
 		if (this.annonce) {
-			console.log ("j'avais déjà fait une annonce", this.annonce);
+			console.log ("j'ai déjà fait une annonce", this.annonce);
 			console.log ("il me reste", this.pts);
 		} else {
 			// Choix de la meilleur couleur à annoncer
@@ -284,13 +324,18 @@ var CoincheRobot = Robot.extend ({
 
 		// combine avec annonce partenaire
 		if (annonce_part) {
-			if (annonce_part.couleur == this.annonce.couleur) {
-				console.log ("mon partenaire a fait une annonce dans ma couleur");
+			if (annonce_part.couleur == this.pts.couleur) {
+				my.log ("mon partenaire a fait une annonce dans ma couleur");
 				this.accord_couleur = true;
+				if (this.pts.atouts) {
+					atout_manquant = true;
+					this.pts.atouts = annonce_part.montant+10;
+				}
 			} else {
-				console.log ('mon partenaire a fait une annonce');
+				my.log ('mon partenaire a fait une annonce a', annonce_part.couleur);
 				if (this.accord_couleur) {
 					console.log ("on est déjà d'accord sur cette couleur");
+					my.debug (this.pts);
 				} else {
 					var ptspart = evalHand (this.hand, this.agressivite, annonce_part.couleur);
 					//console.log ('ptspart', ptspart);
@@ -301,6 +346,7 @@ var CoincheRobot = Robot.extend ({
 					
 					if (sacouleur >= macouleur) {
 						this.pts = ptspart;
+						this.annonce = annonce_part; // NEW
 						console.log ("on va jouer à sa couleur", this.pts.couleur, this.pts.atouts, '+ as', this.pts.as, '+ potentiel', this.pts.potentiel);
 						if (this.pts.atouts)
 							atout_manquant = true;
@@ -311,7 +357,7 @@ var CoincheRobot = Robot.extend ({
 							return false;
 						}
 						*/
-						this.pts.atouts += annonce_part.montant;
+						//this.pts.atouts += annonce_part.montant; // pourquoi? le pb est qu'au 2ème tour il annonce un atout manquant qu'il n'a pas
 					} else {
 						console.log ("je préfère rester à ma couleur");
 					}
@@ -328,68 +374,110 @@ var CoincheRobot = Robot.extend ({
 			if (this.pts.atouts + this.pts.as + this.pts.potentiel + (atout_manquant?10:0) > annonce_adv.montant) {
 				console.log ("mais j'ai de quoi annoncer mieux");
 				if (this.pts.atouts < 90 || this.pts.atouts+this.pts.as <= annonce_adv.montant) {
-					console.error ("cependant je prends des risques alors je monte qu'un peu");
-					annonce = {montant: annonce_adv.montant + 10, couleur: this.pts.couleur};
+					speech = "cependant je prends des risques alors je monte qu'un peu";
+					annonce = {
+						montant: annonce_adv.montant + 10, 
+						couleur: this.pts.couleur,
+						speech: "Je prends des risques"
+					};
 					this.pts.atouts = 0;
 					this.pts.as = 0;
 					this.pts.potentiel = 0; // TODO pour avoir le montant exact
 				}
 				else {
-					console.log ("j'annonce juste atouts et as");
-					annonce = {montant: this.pts.atouts+this.pts.as, couleur: this.pts.couleur};
+					annonce = {
+						montant: this.pts.atouts+this.pts.as,
+						couleur: this.pts.couleur,
+						speech: "J'annonce juste atouts et as"
+					};
 					this.pts.atouts = 0;
 					this.pts.as = 0;
 				}
 			}
 			else {
-				console.log ('et je peux pas faire mieux');
+				annonce = { speech: "Pas mieux" };
 			}
 
 		} else {
 			if (annonce_part) { 
 				console.log ("je vais annoncer par rapport à mon part");
 				if (atout_manquant) {
-					console.log ("j'annonce son atout manquant");
-					annonce = {montant: this.pts.atouts, couleur: this.pts.couleur};
+					annonce = {
+						montant: this.pts.atouts, 
+						couleur: this.pts.couleur,
+						speech: "J'annonce ton atout manquant"
+					};
 					this.pts.atouts = 0;
 				} else if (annonce_part.montant == 80) {
-					console.log ("j'annonce que j'ai pas son atout manquant");
+					annonce = { speech: "J'ai pas ton atout manquant" };
 				} else {
 					if (this.pts.as) {
-						console.log ("j'annonce mes as");
-						annonce = {montant: annonce_part.montant+this.pts.as, couleur: this.pts.couleur};
+						annonce = {
+							montant: annonce_part.montant+this.pts.as, 
+							couleur: annonce_part.couleur,
+							speech: "J'annonce mes as"
+						};
 						this.pts.as = 0;
 					} else {
-						console.log ("rien à annoncer en plus");
+						annonce = { speech: "Rien à annoncer en plus" };
 					}
 				}
 			} else if (this.pts.atouts) {
-				console.log ("j'ouvre les enchères");
 				if (this.pts.atouts < 90) {
-					annonce = {montant: 80, couleur: this.pts.couleur};
+					annonce = {
+						montant: 80, 
+						couleur: this.pts.couleur,
+						speech: "Il me manque un atout"
+					};
 					this.pts.atouts = 0;
 				}
 				else {
-					annonce = {montant: this.pts.atouts+this.pts.as, couleur: this.pts.couleur};
+					annonce = {
+						montant: this.pts.atouts+this.pts.as, 
+						couleur: this.pts.couleur,
+						speech: "J'ouvre les enchères"
+					};
 					this.pts.atouts = 0;
 					this.pts.as = 0;
 				}
 			} else {
-				console.log ("j'ai pas de jeu");
+				annonce = { speech: "J'ai pas de jeu" };
 			}
 		}
-
-		console.warn (annonce?annonce.montant+''+annonce.couleur:'pass');
 		this.annonce = annonce;
+		//my.debug ('this.pts', this.pts);
 		return this.annonce;
+	},
+	appel: function (par_couleur, cartes_maitres, couleur_atout, en_attaque) {
+		//my.debug ("TENTATIVE D'APPEL, cartes maitres:", cartes_maitres);
+		for (var couleur in cartes_maitres) {
+			if ((carte_maitre = cartes_maitres[couleur]) // elle est maitre
+			&& (couleur != couleur_atout) // ce n'est pas la couleur atout
+			&& (par_couleur[couleur].length > 1)) { // et elle est deuxieme
+				var cid = false;
+				if (en_attaque) {
+					cid = this.hand.maxid ({suit: couleur, below: carte_maitre.rank});
+					if (this.hand.cards[cid].rank == '10') // si c'est le 10
+						cid = this.hand.maxid ({suit: couleur}); // je fais l'appel avec l'as	
+				} else {
+					cid = this.hand.minid ({suit: couleur});
+				}
+				return {
+					cid: cid,
+					speech: "Je fais un appel à "+couleur
+				};
+			}
+		}
+		return false;
 	},
 	play: function (game) {
 		var couleur_atout = game.contrat.couleur,
 			couleur_demandee = game.pli.couleur,
-			//atouts_restants_part = game.manche.atouts_restants[this.team],
-			//atouts_restants_adv  = game.manche.atouts_restants[(this.team+1)%2],
 			en_attaque = game.teneur == this.team,
 			atouts_restants = game.manche.cartes_jouees.atoutsRestants (),
+			carte_tenante = game.pli.cards.best (couleur_atout),
+			part_maitre = ((carte_tenante.team == this.team) // mon partenaire tiens
+							&& game.manche.cartes_jouees.est_maitre (carte_tenante)); // avec une carte maitre? (que faire si part coupe petit?)
 			par_couleur = {},
 			cartes_maitres = {};
 		$.each (Suits, function (i, suit) {
@@ -399,85 +487,206 @@ var CoincheRobot = Robot.extend ({
 		$.each (this.hand.cards, function (cid, card) {
 			card.id = cid;
 			par_couleur[card.suit].push (card);
-			if (game.manche.cartes_jouees.est_maitre (card)) {
-				my.debug (card+' est maitre');
+			if (game.manche.cartes_jouees.est_maitre (card))
 				cartes_maitres[card.suit] = card;
-			}
 		});
 		atouts_restants -= par_couleur[couleur_atout].length;
 		
 		if (couleur_demandee === false) {
 			my.log ("je dois poser la première carte");
-			if (atouts_restants) {
+			if (en_attaque && atouts_restants) {
 				my.log ("je dois faire tomber les atouts chez l'adversaire");
 				if (par_couleur[couleur_atout].length) {
 					if (cartes_maitres[couleur_atout]) {
-						my.log ("je pose un atout maitre");
-						return cartes_maitres[couleur_atout].id;
-					} /*else {
-						my.log ("je n'ai pas d'atout maitre");
-						if (meilleur atout < 10) {
-							my.log ("je pose un petit atout pour faire tomber les autres");
-						} else {
-							my.log ("je ne veux pas sacrifier mes atouts, j'essaye de faire couper");
-						}
+						return {
+							cid: cartes_maitres[couleur_atout].id,
+							speech: "Je fais tomber les atouts avec un atout maitre"
+						};
 					}
-				else {
-					my.log ("je n'ai pas d'atout, j'essaye de faire couper l'adversaire");
-				*/
+					my.log ("je n'ai pas d'atout maitre");
+					return {
+						cid: this.hand.minid ({suit: couleur_atout, isatout:true}),
+						speech: "Je fais tomber les atouts par un petit atout"
+					};
+					/*
+					if (meilleur atout < 10) {
+						my.log ("je pose un petit atout pour faire tomber les autres");
+					} else {
+						my.log ("je ne veux pas sacrifier mes atouts, j'essaye de faire couper");
+					}
+					*/
 				}
-				
+				my.log ("je n'ai pas d'atout, j'essaye de faire couper l'adversaire");
+				my.log ("je joue dans la couleur qui a la plus été jouée");
+				return {
+					cid: this.hand.minid ({suite: game.manche.cartes_jouees.couleurCoupe (couleur_atout)}),
+					speech: "Je fais tomber les atouts en essayant de faire couper"
+				};
 			}
 			else {
 				my.log ("je joues mes cartes maitres");
 				for (var suit in cartes_maitres)
 					if (cartes_maitres.hasOwnProperty (suit) && (suit != couleur_atout) && cartes_maitres[suit])
-						return cartes_maitres[suit].id;
+						return {
+							cid: cartes_maitres[suit].id,
+							speech: "Je joues mes cartes maitres"
+						};
 				my.log ("je n'ai pas de carte maitre");
-			} /*
-			else if (appel part) {
+			}
+			/*
+			if (appel part) {
 				my.log ("je reponds a l'appel de mon part");
 			}
 			else if (coupe part) {
 				my.log ("j'essaye de faire couper mon part");
 			}
 			else
-				pisser carte adv pas maitre
-			return 0;
 			*/
+			my.log ('je pisse une carte non-atout');
+			if ((cid = this.hand.minid ({avoid: couleur_atout})) !== false)
+				return {
+					cid: cid,
+					speech: "Je pisse une carte non-atout"
+				};
+			my.log ("je n'ai plus que des atouts?");
+			return {
+				cid: this.hand.minid ({}),
+				speech: "J'ai plus que des atouts"
+			};
 		}
 		
 		my.log ('je dois jouer du', couleur_demandee);
 		if (couleur_demandee == couleur_atout) {
-			var best = game.pli.cards.best (couleur_atout);
-			my.log ("c'est de l'atout je dois monter sur "+best);
-			if (en_attaque && cartes_maitres[couleur_atout]) {
-				my.log ("je pose un atout maitre");
-				return cartes_maitres[couleur_atout].id;
+			my.log ("c'est de l'atout je dois monter sur "+carte_tenante);
+			if (par_couleur[couleur_atout].length) {
+				// j'ai des atouts
+				if (en_attaque) {
+					if (cartes_maitres[couleur_atout]) {
+						my.log ("je joue mon atout maitre");
+						return {
+							cid: cartes_maitres[couleur_atout].id,
+							speech: "Je joue mon atout maitre"
+						};
+					}
+				}
+				if ((carte_tenante.team == this.team) && game.manche.cartes_jouees.est_maitre (carte_tenante)) {
+					return {
+						cid: this.hand.maxid ({suit: couleur_demandee, isatout:true, trybelow: '9'}),
+						speech: "Mon part est maître, je charge" // sauf si j'ai le 14
+					};
+				}
+				return {
+					cid: this.hand.minid ({suit: couleur_demandee, isatout: true, tryabove: carte_tenante.rank}),
+					speech: "Je mets le minimum possible"
+				};
+			} else {
+				// J'ai pas d'atout
+				if ((appel = this.appel (par_couleur, cartes_maitres, couleur_atout, part_maitre)) !== false)
+					return appel;
+				if (part_maitre) {
+					return {
+						cid: this.hand.maxid ({}),
+						speech: "Pas d'appel possible, mon part est maître, je charge"
+					};
+				}
+				return {
+					cid: this.hand.minid ({}),
+					speech: "Pas d'appel possible, part pas maître, je pisse"
+				};
 			}
-			my.log ("je n'ai pas d'atout maitre, je mets le minimum");
-			if ((cid = this.hand.minid (couleur_demandee, true, best.rank)) !== false)
-				return cid;
-			my.log ("je ne peux pas monter");
-			if ((cid = this.hand.minid (couleur_demandee, true)) !== false)
-				return cid;
-			my.log ("je n'ai pas d'atout, je fais un appel?");
-			return this.hand.minid ();
+		} else {
+			// couleur demandée non atout
+			if (par_couleur[couleur_demandee].length) {
+				// j'ai de la couleur demandée
+				if (cartes_maitres[couleur_demandee]) {
+					// je suis maitre à cette couleur
+					if (carte_tenante.suit == couleur_atout && carte_tenante.team != this.team) {
+						// l'adversaire a coupé
+						return {
+							cid: this.hand.minid ({suit: couleur_demandee}),
+							speech: "Ca a coupé, je pisse"
+						};
+					}
+					return {
+						cid: cartes_maitres[couleur_demandee].id,
+						speech: "Je suis maître à cette couleur"
+					};
+				}
+				if (part_maitre) {
+					return {
+						cid: this.hand.maxid ({suit: couleur_demandee}),
+						speech: "Mont part est maître, je charge"
+					};
+				}
+				return {
+					cid: this.hand.minid ({suit: couleur_demandee}),
+					speech: "Je pisse"
+				};
+			} else {
+				// j'ai pas de la couleur non-atout demandée, je dois couper
+				if (part_maitre) {
+					// sauf si mon part est maitre (TODO: excepté s'il a coupé, je dois couper aussi)
+					if ((appel = this.appel (par_couleur, cartes_maitres, couleur_atout, true)) !== false)
+						// je peux faire un appel
+						return appel;
+					if ((cid = this.hand.maxid ({avoid: couleur_atout})) !== false)
+						// pas d'appel possible, je charge
+						return {
+							cid: cid,
+							speech: "Mon part est maître, pas d'appel possible, je charge"
+						};
+					return {
+						// plus que des atouts
+						cid: this.hand.minid ({}),
+						speech: "J'ai plus que des atouts, désolé"
+					};
+				} else {
+					// mon part n'est pas maitre, je coupe
+					if (carte_tenante.suit == couleur_atout) {
+						// ca a déjà coupé, je dois monter
+						if ((cid = this.hand.minid ({suit: couleur_atout, isatout: true, above: carte_tenante.rank})) !== false)
+							// je peux monter
+							return {
+								cid: cid,
+								speech: "Ca a déjà coupé, je dois monter"
+							};
+						my.log ("je ne peux pas monter");
+						if ((cid = this.hand.minid ({suit: couleur_atout, isatout: true})) !== false)
+							// je peux pas monter
+							return {
+								cid: cid,
+								speech: "Ca a déjà coupé, je peux pas monter"
+							};
+						// je n'ai pas d'atout
+						// => voir après else {}
+					} else {
+						// ca n'a pas coupé avant, je coupe
+						if (par_couleur[couleur_atout].length>1 && cartes_maitres[couleur_atout])
+							// je garde mon atout maitre second
+							return {
+								// todo return par_couleur (atout).filter (not maitre).best ().id;
+								cid: this.hand.minid ({suit: couleur_atout, isatout: true}),
+								speech: "Je coupe, mais pas avec mon atout maître"
+							};
+						// je  coupe avec mon plus gros atout
+						if ((cid = this.hand.maxid ({suit: couleur_atout, isatout: true})) !== false)
+							return {
+								cid: cid,
+								speech: "Je sauve mon meilleur atout"
+							};
+					}
+					// je n'ai pas d'atout, mon partenaire n'est pas maitre
+					if ((appel = this.appel (par_couleur, cartes_maitres, couleur_atout, false)) !== false)
+						// je peux faire un appel léger
+						return appel;
+					return {
+					// pas d'appel possible, je pisse
+						cid: this.hand.minid ({}),
+						speech: "Pas d'appel possible, je pisse"
+					};
+				}
+			}
 		}
-		if (cartes_maitres[couleur_demandee]) {
-			my.log ("je suis maitre à cette couleur");
-			return cartes_maitres[couleur_demandee].id;
-		}
-		my.log ('je joue léger à', couleur_demandee);
-		if ((cid = this.hand.minid (couleur_demandee)) !== false)
-			return cid;
-
-		my.log ("j'ai pas de", couleur_demandee, "je dois couper");
-		if ((cid = this.hand.minid (couleur_atout)) !== false)
-			return cid;
-
-		my.log ("j'ai pas d'atout, je pisse");
-		return this.hand.minid ();
 	}
 });
 /*

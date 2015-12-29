@@ -45,16 +45,17 @@ var Deck = Class.extend ({
 		}
 	},
 	shuffle: function () {
-        console.log ('shuffling deck');
+        my.debug ('shuffling deck');
         for (var i = 0; i < this.deck.length; i++)
             this.deck[i] = this.deck.splice(
                 parseInt(this.deck.length * Math.random()), 1, this.deck[i])[0];
     },
 	cut: function () {
-		console.log ('cutting deck');
-		var at = Math.floor(Math.random() * this.deck.length-2) + 1,
+		var at = Math.floor(Math.random() * (this.deck.length-2)) + 1,
 			half = this.deck.splice (0, at);
+		my.debug ('cutting deck');
 		Array.prototype.push.apply(this.deck, half);
+		return this;
 	},
 	deal: function (nb) {
         return this.deck.splice(0, nb || 1);
@@ -84,17 +85,20 @@ var Hand = Class.extend ({
 	toString: function () {
 		return this.cards.join (' ');
 	},
-	minid: function (order, suit, fromorder) {
-		order = order || '2 3 4 5 6 7 8 9 10 J Q K A';
-		order = order.split (' ');
-		fromorder = order.indexOf (fromorder) || -1;
-		minorder = order.length;
+	minid: function (params) {
+		//my.debug ('calling minid with', params);
+		var suit = params.suit || false, // toutes les couleurs
+			avoid = params.avoid || false, // éviter cette couleur
+			order = (params.order || '2 3 4 5 6 7 8 9 10 J Q K A').split (' '),
+			aboveorder = order.indexOf (params.above),
+			minorder = order.length;
 		var mincid = false;
 		$.each (this.cards, function (cid, card) {
-			if (suit && card.suit != suit)
+			if ((suit && card.suit != suit) || (avoid && card.suit == avoid)) 
 				return;
 			var cardorder = order.indexOf (card.rank);
-			if ((cardorder < minorder) && (cardorder > fromorder)){
+			if ((cardorder < minorder) && (cardorder > aboveorder)){
+				//my.debug ('	', cardorder, '<', minorder, '&&', cardorder, '>', aboveorder);
 				mincid = cid;
 				minorder = cardorder;
 			}
@@ -112,6 +116,7 @@ var Player = Class.extend ({
 	toString: function () {
 		return this.nickname+': '+this.hand;
 	},
+	reset: function () {},
 	play: function () {
 		var answer,
 			regex = /^(\d+)(C|c|t|p)$/;

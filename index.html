@@ -16,7 +16,9 @@
 	<div id="container" class="container-fuild playingCards faceImages rotateHand">
 		<script id='template' type='text/ractive'>
 
-			<!-- BUTTONS -->
+			<div id="tapis"></div>
+
+			<!-- SETTINGS -->
 			<button id="settings-btn" class="btn btn-default" data-toggle="modal" data-target="#settings-modal">
 				<span class="glyphicon glyphicon-cog"></span>
 			</button>
@@ -30,8 +32,8 @@
 			      <div class="modal-body">
 			      	<form class="form-horizontal">
 			      		<div class="form-group">
-						    <label for="game_speed" class="col-sm-6 control-label">Vitesse du jeu</label>
-						    <div class="col-sm-6">
+						    <label for="game_speed" class="col-sm-7 control-label">Vitesse du jeu</label>
+						    <div class="col-sm-5">
 						      <select id="game_speed" value="{{settings.game_speed}}" class="form-control">
 						      	{{#each settings.game_speeds:speed}}
 								  <option value="{{speed}}">{{.}}</option>
@@ -40,54 +42,85 @@
 						    </div>
 						  </div>
 						  <div class="form-group">
-						    <div class="col-sm-offset-6 col-sm-16">
+						    <label for="game_speed" class="col-sm-7 control-label">Appels du partenaire</label>
+						    <div class="col-sm-5">
+						      <select id="game_speed" value="{{settings.mode_appels}}" class="form-control">
+						      	{{#each settings.modes_appels:mode_appels}}
+								  <option value="{{mode_appels}}">{{.}}</option>
+								{{/each}}
+								</select>
+						    </div>
+						  </div>
+						  <div class="form-group">
+						    <div class="col-sm-offset-5 col-sm-16">
 						    <div class="checkbox">
 							  <label>
-							    <input type="checkbox" checked="{{cheatmode}}">Mode triche
+							    <input type="checkbox" checked="{{settings.cheatmode}}">Mode triche
 							  </label>
 							</div>
+						  </div>
+						  <div class="form-group">
+						    <div class="col-sm-offset-5 col-sm-16">
+						    <div class="checkbox">
+							  <label>
+							    <input type="checkbox" checked="{{settings.talkative}}">Mode bavard
+							  </label>
 							</div>
 						  </div>
+						</div>
 			      	</form>
+
+			      </div>
+			      <div class="modal-footer">
+			      	<button on-click="reboot" type="button" class="btn btn-default">
+					  <span class="glyphicon glyphicon-repeat"></span> Rejouer cette manche
+					</button>
+					<button on-click="reload" class="btn btn-default">
+					  <span class="glyphicon glyphicon-refresh"></span> Recharger et rejouer (DEV)
+					</button>
 			      </div>
 			    </div>
 			  </div>
 			</div>
 			
 			<!-- SCORES -->
-			<div id="scores">
-				<table class="table table-condensed">
-					<thead>
-						<tr>
-							{{#each game.teams:t}}
-								<th>
-									{{#each players}}
-										{{#if team==t}}{{nickname}}<br />{{/if}}
-									{{/each}}
-								</th>
-							{{/each}}
-						</tr>
-					</thead>
-					<tbody>
-						{{#each game.scores}}
-							<tr>
-								<td>
-									{{#0}}
-									<span>{{points}} </span>
-									{{#contrat}} (<span class="annonce {{getSuitClass(couleur)}}">{{contrat}}</span>){{/}}
-									{{/}}
-								</td>
-								<td>
-									{{#1}}
-									<span>{{points}} </span>
-									{{#contrat}} (<span class="annonce {{getSuitClass(couleur)}}">{{contrat}}</span>){{/}}
-									{{/}}
-								</td>
-							</tr>
+			<div id="scoreboard">
+				<div id="teams" class="container-fluid">
+					<div class="row">
+						{{#each game.teams:t}}
+							<div class="col-sm-6">
+								{{#each players}}
+									{{#if team==t}}{{nickname}}<br />{{/if}}
+								{{/each}}
+							</div>
 						{{/each}}
-					</tbody>
-				</table>
+					</div>
+				</div>
+				<div id="scores" class="container-fluid">
+					{{#each game.scores}}
+						<div class="row">
+							<div class="col-sm-6">
+								{{#0}}
+								<span>{{points}} </span>
+								{{#contrat}} (<span class="annonce {{getSuitClass(couleur)}}">{{contrat}}</span>){{/}}
+								{{/}}
+							</div>
+							<div class="col-sm-6">
+								{{#1}}
+								<span>{{points}} </span>
+								{{#contrat}} (<span class="annonce {{getSuitClass(couleur)}}">{{contrat}}</span>){{/}}
+								{{/}}
+							</div>
+						</div>
+					{{/each}}
+				</div>
+				<div id="totals" class="container-fluid">
+					{{#each game.totals}}
+						<div class="col-sm-6">{{.}}</div>
+					{{/each}}
+				</div>
 			</div>
+			<img id="pencil" src="img/pencil.jpg">
 
 			<!-- PLI -->
 			{{#game.pli.cards}}
@@ -117,7 +150,7 @@
 										  {{Math.abs((c+1)-hand.cards.length/2)*0.5}}em)
 								rotate({{12*((hand.cards.length-1)/-2+c)}}deg);
 							">
-								{{#i && !cheatmode}}
+								{{#i && !settings.cheatmode}}
 									<div class="card back"></div>
 								{{elseif youplay}}
 									<a on-click="put:{{i}},{{c}}" class="card rank-{{rank.toLowerCase()}} {{getSuitClass(this.suit)}}" href="#">
@@ -137,13 +170,15 @@
 			{{/each}}
 
 			<!-- DECK -->
-			<a id="deck" href="#" data-placement="left">
+			<div id="deck" data-placement="left">
 				<ul class="deck">
-					{{#each ~/deck.deck}}
-						<li><div class="card back"></div></li>
+					{{#each ~/deck.deck:i}}
+						{{^i%3}}
+							<li><div class="card back"></div></li>
+						{{/}}
 					{{/each}}
 				</ul>
-			</a>
+			</div>
 
 			<!-- POPOVERS -->
 			<div id="controls" class="hide">
@@ -187,10 +222,16 @@
 			</div>
 
 			<div id="deck-popover" class="hide">
-				<div class="btn-group" role="group">
-				  <button id="deal-btn" type="button" class="btn btn-default">Distribuer</button>
-				  <button type="button" class="btn btn-default">Couper</button>
-				  <button id="shuffle-btn"type="button" class="btn btn-default">Mélanger</button>
+				<div class="btn-group-vertical" role="group">
+				  <button id="shuffle-btn" type="button" class="btn btn-default">
+					<span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Mélanger
+				</button>
+				  <button id="cut-btn" type="button" class="btn btn-info">
+				  	<span class="glyphicon glyphicon-retweet" aria-hidden="true"></span> Couper
+				  </button>
+				<button id="deal-btn" type="button" class="btn btn-primary">
+						<span class="glyphicon glyphicon-play" aria-hidden="true"></span> Distribuer
+					</button>
 				</div>
 			</div>
 		</script>
