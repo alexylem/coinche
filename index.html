@@ -1,60 +1,152 @@
 <!DOCTYPE html>
-<html lang="en-us">
-  <head>
-    <meta charset="UTF-8">
-    <title>Coinche by alexylem</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
-    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<link rel="icon" href="../../favicon.ico">
+
+	<title>loading...</title>
+
+	<!-- Bootstrap core CSS -->
+	<!--Loaded dynamically -->
+
+	<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+      <![endif]-->
+
+     <link href="css/app.css" rel="stylesheet">
   </head>
-  <body>
-    <section class="page-header">
-      <h1 class="project-name">Coinche</h1>
-      <h2 class="project-tagline">Simulation de Coinche en ligne</h2>
-      <a href="https://github.com/alexylem/coinche" class="btn">View on GitHub</a>
-      <a href="https://github.com/alexylem/coinche/zipball/master" class="btn">Download .zip</a>
-      <a href="https://github.com/alexylem/coinche/tarball/master" class="btn">Download .tar.gz</a>
-    </section>
 
-    <section class="main-content">
-      <h1>
-<a id="coinche" class="anchor" href="#coinche" aria-hidden="true"><span class="octicon octicon-link"></span></a>Coinche</h1>
+  <body role="document" id="container">
+  	<script id='template' type='text/ractive'>
 
-<p>Coinche est une simulation de jeu de Coinche en ligne (variante de la belote) pour apprendre et se perfectionner contre une IA avancée.</p>
+  		<nav id="navbar" class="navbar navbar-default navbar-fixed-top">
+  			<div class="container">
+  				<div class="navbar-header">
+  					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+  						<span class="sr-only">Toggle navigation</span>
+  						<span class="icon-bar"></span>
+  						<span class="icon-bar"></span>
+  						<span class="icon-bar"></span>
+  					</button>
+					<ul class="nav navbar-nav">
+						<li class="dropdown">
+							<a class="navbar-brand dropdown-toggle" href="#"  data-toggle="dropdown">{{title}} <span class="caret"></span></a>
+							<ul class="dropdown-menu">
+								<li class="dropdown-header">Mes projets</li>
+								<li><a href="#"><span class="glyphicon glyphicon-home"></span> iHome</a></li>
+								<li><a href="#"><span class="glyphicon glyphicon-play-circle"></span> Launcher</a></li>
+								<li><a href="#"><span class="glyphicon glyphicon-picture"></span> MyPhotos</a></li>
+								<li><a href="#"><span class="glyphicon">&spades;</span> Coinche</a></li>
+								<li><a href="#"><span class="glyphicon glyphicon-wrench"></span> Builder</a></li>
+								<li><a href="#"><span class="glyphicon glyphicon-bullhorn"></span> ProjectPage</a></li>
+								<li role="separator" class="divider"></li>
+								<li class="dropdown-header">Sites web</li>
+								<li><a href="http://moeatacreations.fr/" target="_blank"><span class="glyphicon glyphicon-globe"></span> Moeata Creations</a></li>
+							</ul>
+						</li>
+					</ul>
+  				</div>
+  				<div class="navbar-collapse collapse">
+  					<ul class="nav navbar-nav">
+  						<li class="active"><a href="#home"><span class="glyphicon glyphicon-home"></span></a></li>
+  						{{#each sections:sectionid}}
+  							{{#if link}}
+  								<li><a href="#{{id}}">{{link}}</a></li>
+  							{{/if}}
+  						{{/each}}
+						<li><a href="#disqus_thread">
+							<span class="glyphicon glyphicon-comment"></span>
+						</a></li>
+  					</ul>
+  				</div>
+  			</div>
+  		</nav>
 
-<h2>
-<a id="fonctionalités-principales" class="anchor" href="#fonctionalit%C3%A9s-principales" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fonctionalités principales</h2>
+  		<div class="container" id="home">
 
-<h3>
-<a id="designer-templates" class="anchor" href="#designer-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+  			{{#sections:i}}
+	  			{{#if type == 'jumbotron'}}
+		  			<div id="{{id}}" class="jumbotron text-center">
+		  				<h1>{{title}}</h1>
+		  				<p class="markdown">{{text}}</p>
+						{{#button}}
+							<a class="btn btn-lg btn-primary" href="{{url}}" role="button">
+								<span class="glyphicon glyphicon-{{icon}}"></span> {{button}}
+							</a>
+						{{/}}
+		  			</div>
 
-<p>We’ve crafted some handsome templates for you to use. Go ahead and click 'Continue to layouts' to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved.</p>
+		  		{{elseif grid}}
+				  	<div id="{{id}}" class="row text-center">
+					  	{{#grid:i}}
+				  			<div class="col-sm-4">
+					  			<span class="glyphicon glyphicon-{{icon}} bg-primary img-circle"></span>
+			  					<h3>{{title}}</h3>
+			  					<p class="markdown">{{text}}</p>
+			  				</div>
+			  			{{/icons}}
+		  			</div>
+				{{elseif image}}
+					<div id="{{id}}" class="row middle">
+						<div class="col-sm-7 {{#if i%2}}col-sm-push-5{{/if}}">
+							<h2>{{title}}</h2>
+							<p class="lead markdown">{{text}}</p>
+							{{#button}}
+								<a class="btn btn-primary" href="{{url}}" role="button">
+									<span class="glyphicon glyphicon-{{icon}}"></span> {{button}}
+								</a>
+							{{/}}
+						</div>
+						<div class="col-sm-5 {{#if i%2}}col-sm-pull-7{{/if}}">
+							<img class="img-rounded" src="{{image}}">
+						</div>
+					</div>
+				{{else}}
+					<div id="{{id}}">
+						{{#./title}}
+							<div class="page-header">
+								<h2>{{title}}</h2>
+							</div>
+						{{/}}
+					</div>
+					<p class="lead markdown">{{text}}</p>
+				{{/if}}
+  			{{/sections}}
 
-<h3>
-<a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating pages manually</h3>
+			{{#if comments}}
+				<div id="disqus_thread"></div>
+			{{/if }}
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+			<footer>
+				<p class="pull-right"><a href="#"><span class="glyphicon glyphicon-chevron-up"></span></a></p>
+		    	<p>© 2015 Generated with <a href="#" target="_blank">ProjectPage</a></p>
+			</footer>
+  		</div> <!-- /container -->
 
-<h3>
-<a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+  	</script>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor’s GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+  	<!-- jQuery -->
+  	<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 
-<h3>
-<a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+  	<!-- Ractive -->
+  	<script src='lib/ractive/ractive.min.js'></script>
 
-<p>Having trouble with Pages? Check out our <a href="https://help.github.com/pages">documentation</a> or <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
+  	<!-- Bootstrap -->
+  	<script src="lib/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
 
-      <footer class="site-footer">
-        <span class="site-footer-owner"><a href="https://github.com/alexylem/coinche">Coinche</a> is maintained by <a href="https://github.com/alexylem">alexylem</a>.</span>
+	<!-- Markdown convertor -->
+	<script src="lib/marked/marked.js"></script>
 
-        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
-      </footer>
-
-    </section>
-
-  
+  	<!-- App -->
+  	<script src="js/my.js"></script>
+  	<script src="js/config.js"></script>
+  	<script src="js/app.js"></script>
   </body>
-</html>
+  </html>
