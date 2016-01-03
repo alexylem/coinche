@@ -74,7 +74,7 @@ C'est aussi à vous d'annoncer *Belote - ReBelote* et ainsi vous entretenez vos 
 			link: Jouer
 			id: play
 			title: Démo en ligne
-			image: http://placehold.it/300
+			image: img/settings.png
 			text: Cliquez dessous pour lancer la démo en ligne
 			button: Lancer la démo
 			icon: play
