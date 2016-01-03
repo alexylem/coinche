@@ -1,9 +1,9 @@
 // Settings
 var user_settings = {
-		game_speed: 500,
+		game_speed: 1000,
 		mode_appel: 'direct',
-		cheatmode: true,
-		talkative: true
+		cheatmode: false,
+		talkative: false
 	},
 	Settings = {
 		game_speeds: {
