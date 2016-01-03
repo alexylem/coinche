@@ -20,7 +20,7 @@
 			image: img/annonce.png
 			button: Jouer
 			icon: play
-			url: 'app/'
+			url: "http://88.167.175.47/coinche/"
 		}{
 			link: Présentation
 			id: overview
@@ -78,7 +78,7 @@ C'est aussi à vous d'annoncer *Belote - ReBelote* et ainsi vous entretenez vos 
 			text: Cliquez dessous pour lancer la démo en ligne
 			button: Lancer la démo
 			icon: play
-			url: '#'
+			url: "http://88.167.175.47/coinche/"
 		}
 	]
 }
